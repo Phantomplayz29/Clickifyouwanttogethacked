@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Constellation of Jewell ✨</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow: hidden; font-family: Georgia, serif; }
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+    .fade-in { animation: fadeIn 0.8s ease-out; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    function ConstellationGame() {
+      const [activatedStars, setActivatedStars] = useState([]);
+      const [currentMessage, setCurrentMessage] = useState(null);
+      const [showFinal, setShowFinal] = useState(false);
+      const [zoomedStar, setZoomedStar] = useState(null);
+      
+      const audioContextRef = useRef(null);
+
+      useEffect(() => {
+        // Initialize Web Audio API
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Play ambient background sound
+        playAmbient();
+        
+        return () => {
+          if (audioContextRef.current) {
+            audioContextRef.current.close();
+          }
+        };
+      }, []);
+
+      const playAmbient = () => {
+        const ctx = audioContextRef.current;
+        
+        // Gentle, uplifting ambient pad - like floating on clouds
+        const frequencies = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5 - bright C major
+        
+        frequencies.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const filter = ctx.createBiquadFilter();
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+          
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1200, ctx.currentTime);
+          filter.Q.setValueAtTime(0.7, ctx.currentTime);
+          
+          gain.gain.setValueAtTime(0, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.012, ctx.currentTime + 3 + i * 0.3);
+          
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          
+          // Very gentle shimmer
+          setInterval(() => {
+            const variation = freq * (1 + (Math.random() - 0.5) * 0.002);
+            osc.frequency.linearRampToValueAtTime(variation, ctx.currentTime + 3);
+          }, 5000 + i * 1000);
+        });
+      };
+
+      const playStarClick = (index) => {
+        const ctx = audioContextRef.current;
+        
+        // Each star has its own unique dreamy note - spelling out J-E-W-E-L-L musically
+        const starNotes = [
+          { freq: 523.25, harmonic: 1318.51 },  // J - C5 + E6
+          { freq: 659.25, harmonic: 1567.98 },  // E - E5 + G6
+          { freq: 783.99, harmonic: 1975.53 },  // W - G5 + B6
+          { freq: 880.00, harmonic: 1760.00 },  // E - A5 + A6
+          { freq: 987.77, harmonic: 1975.53 },  // L - B5 + B6
+          { freq: 1046.50, harmonic: 2093.00 }  // L - C6 + C7
+        ];
+        
+        const note = starNotes[index];
+        
+        // Main note - soft and dreamy
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(note.freq, ctx.currentTime);
+        
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(2500, ctx.currentTime);
+        
+        gain1.gain.setValueAtTime(0, ctx.currentTime);
+        gain1.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.1);
+        gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.5);
+        
+        // Sparkle harmonic
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(note.harmonic, ctx.currentTime);
+        
+        gain2.gain.setValueAtTime(0, ctx.currentTime + 0.05);
+        gain2.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.15);
+        gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2);
+        
+        osc1.connect(filter);
+        filter.connect(gain1);
+        gain1.connect(ctx.destination);
+        
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        
+        osc1.start(ctx.currentTime);
+        osc2.start(ctx.currentTime + 0.05);
+        osc1.stop(ctx.currentTime + 2.5);
+        osc2.stop(ctx.currentTime + 2);
+      };
+
+      const playMessageReveal = () => {
+        const ctx = audioContextRef.current;
+        
+        // Warm, romantic chord that swells gently
+        const notes = [
+          { freq: 523.25, delay: 0 },    // C5
+          { freq: 659.25, delay: 0.15 },  // E5
+          { freq: 783.99, delay: 0.3 },   // G5
+          { freq: 987.77, delay: 0.45 }   // B5
+        ];
+        
+        notes.forEach(({ freq, delay }) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const filter = ctx.createBiquadFilter();
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+          
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1500, ctx.currentTime);
+          filter.Q.setValueAtTime(0.5, ctx.currentTime);
+          
+          gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+          gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + delay + 0.3);
+          gain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + delay + 1);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 3);
+          
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          
+          osc.start(ctx.currentTime + delay);
+          osc.stop(ctx.currentTime + delay + 3);
+        });
+      };
+
+      const playCompletion = () => {
+        const ctx = audioContextRef.current;
+        
+        // Magical, ethereal cascade like wish coming true
+        const arpeggio = [
+          { freq: 523.25, time: 0 },     // C5
+          { freq: 659.25, time: 0.2 },   // E5
+          { freq: 783.99, time: 0.4 },   // G5
+          { freq: 1046.50, time: 0.6 },  // C6
+          { freq: 1318.51, time: 0.8 },  // E6
+        ];
+        
+        // Add sustained romantic chord
+        const chord = [523.25, 659.25, 783.99]; // C major
+        chord.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const filter = ctx.createBiquadFilter();
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+          
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1200, ctx.currentTime);
+          
+          gain.gain.setValueAtTime(0, ctx.currentTime + 1);
+          gain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 1.5);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 5);
+          
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          
+          osc.start(ctx.currentTime + 1);
+          osc.stop(ctx.currentTime + 5);
+        });
+        
+        // Sparkly arpeggio
+        arpeggio.forEach(({ freq, time }) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+          
+          gain.gain.setValueAtTime(0, ctx.currentTime + time);
+          gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + time + 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + time + 1.5);
+          
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          
+          osc.start(ctx.currentTime + time);
+          osc.stop(ctx.currentTime + time + 1.5);
+        });
+      };
+
+      const letters = [
+        { letter: 'J', message: "The First Time I Knew I Liked You. To be honest, you told me before that you liked me first.. right? Well thats not really true baby. Ever since Nica and Gab introduced you to me or invited me to the server, When I saw what you looked like, I developed a small crush on you, a happy crush. The exact moment I knew that I do like you was when you were just yourself, not trying to fit in or change who you are for people. The way you talked to me... the way you teased me and the fact that we became so close in such a short span of time, the way you made everything feel so much lighter. There was this day.. I dont really remember the date but we were calling, your camera was open and mine was closed, I realized then and there that 'woa i like her'. From that moment on, something in me changed eh. I started really giving more hints that I liked you, caring more, and to be honest feeling more. I didnt expect, that id like someone so soon especially when I was on my winter arc back then, but it felt right. And honestly jewy, looking back at it now, Im really glad it happend, because thats where everything began for me. I love you." },
+        { letter: 'E', message: "My Favorite Things Abot You. You know baby, theres so much things I love about you. Your cute little laugh, your softness, your kindness, your care, your energy, even the small things baby, even the little things you think noone notices. I love the way you talk to me, its so cute, how you get shy when I stare at you for too long, and how you make everything feel so much lighter. Just being here for me and talking to me, you can make me so much better. You have this effect on me baby that I cant really explain eh. But what I really love most about you is how youre so genuine. You dont try too hard just nonchalant and sometimes oa but to be fr babyy you just being there for me is enough to make my day so much better. Youre truly my favorite person eh, and I wont ever get tired of you..even if I say I do but baby deep down im just hurt. I love you." },
+        { letter: 'W', message: "A Letter For When You Miss me. If youre reading this if you miss me baby, I want you to know that I miss you too, in every single situation ill always miss you too.. maybe even more hehe. Sometimes when I think to myself, its all about you, your voice, your smile, your warmth, and it makes me long for you, it makes me wish you were right beside me. Even when we arent together and were apartm you never leave my mind. I want you to close your eyes lang and image me holding you tight, telling you that everythings gonna be okay. I may not always be there physucally, but my heart is always with you. Ill always come back to you, always. I love you." },
+        { letter: 'E', message: "For When You’re Having a Bad Day. Baby, if today feels heavy or youre having a hard time, please remember ha na its okay to slow down, breathe ka lang muna, and rest okay? You dont have to be strong all the time. Youre human din baby, and its normal to feel tired, stressed, and maybe overwhelmed. Just know that youre not facing this hardship alone ha? Im here baby, even when I cant be by your side physically. What ever youre going through baby, im just here holding you in my thoughts. I believe in you ha baby, and I’ll always be here supporting you, comforting you, and loving you through everything. You’re never a burden, and you’ll never have to face the world alone as long as I’m in your life. I love you." },
+        { letter: 'L', message: "Why I Choose You Every Day. Hi baby, I choose you everyday because you make my life so much brighter without even trying. You always give me warmth and calmness that no one else ever has. You understand me in ways I never expected someone could, and baby you see me eh, the real me, without judging or pushing me away. With you Jewy, everything feels so smooth, natural, comfy, and right. You make loving someone feel simple, safe, and genuine. And baby, the truth is, every single day, even on the diffucult ones, my heart always finds its way back to you. Ill keep choosing you again and again and again, not because im supposed to, but because I genuinely want to baby. Youre the kind of person whos worth choosing every single time, and ill never get tired of choosing you. I love you." },
+        { letter: 'L', message: "A Promise Letter. My bebi, I promise to always stay, to listen, and to keep choosing you no matter what. I promise to put more effort into us, like I have always been, I promise to understand you even on the days when you dont fully understand yourself and to make you feel loved in every way I possibly can. To be honest baby, You deserve consistency, loyalty and constant reassurance, and baby I wanna give you all that, everyday. Most of all baby, I promise to love you honestly ha, not perfectly though, but with my whole heart, that monmon in your dreams not me baby ha. Im here for the long run baby, I want to grow with you, learn with you, and build something real with you baby. You mean so much to me kaya, more than you probably realize, and I want you to feel that every single day were together. I love you." }
+      ];
+
+      const starPositions = [
+        { x: 30, y: 25 }, { x: 42, y: 30 }, { x: 50, y: 42 },
+        { x: 58, y: 54 }, { x: 48, y: 65 }, { x: 60, y: 72 }
+      ];
+
+      const constellationLines = [[0,1],[1,2],[2,3],[3,4],[4,5],[2,4]];
+
+      const handleStarClick = (index) => {
+        if (activatedStars.includes(index)) return;
+        playStarClick(index);
+        setZoomedStar(index);
+        setTimeout(() => {
+          setActivatedStars(prev => [...prev, index]);
+          setCurrentMessage(letters[index].message);
+          playMessageReveal();
+        }, 800);
+      };
+
+      const handleCloseMessage = () => {
+        setCurrentMessage(null);
+        setZoomedStar(null);
+        // Check if all stars are done AFTER closing
+        if (activatedStars.length === 6) {
+          setTimeout(() => {
+            setShowFinal(true);
+            playCompletion();
+          }, 800);
+        }
+      };
+
+      const getTransform = () => {
+        if (zoomedStar === null) return 'scale(1) translate(0, 0)';
+        const star = starPositions[zoomedStar];
+        return `scale(3) translate(${(50 - star.x) * 0.8}%, ${(50 - star.y) * 0.8}%)`;
+      };
+
+      return React.createElement('div', { className: 'w-full h-screen bg-black overflow-hidden relative' },
+        zoomedStar !== null && React.createElement('div', { className: 'absolute inset-0 bg-black/60 z-10 transition-opacity duration-700' }),
+        
+        React.createElement('div', { className: 'absolute inset-0 transition-transform duration-700 ease-out', style: { transform: getTransform() } },
+          React.createElement('div', { style: { background: 'radial-gradient(ellipse at center, #1a0933 0%, #000000 100%)', width: '100%', height: '100%', position: 'absolute' } }),
+          React.createElement('div', { className: 'absolute inset-0 opacity-40' },
+            React.createElement('div', { className: 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-gradient-to-r from-transparent via-pink-500/30 to-transparent blur-3xl rotate-45' }),
+            React.createElement('div', { className: 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-gradient-to-r from-transparent via-purple-500/30 to-transparent blur-3xl -rotate-45' })
+          ),
+          React.createElement('div', { className: 'absolute inset-0 opacity-60' },
+            React.createElement('div', { className: 'absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full', style: { background: 'radial-gradient(circle, rgba(255,20,147,0.3) 0%, transparent 70%)', filter: 'blur(60px)' } }),
+            React.createElement('div', { className: 'absolute bottom-1/3 right-1/4 w-[400px] h-[400px] rounded-full', style: { background: 'radial-gradient(circle, rgba(138,43,226,0.3) 0%, transparent 70%)', filter: 'blur(60px)' } }),
+            React.createElement('div', { className: 'absolute top-1/2 right-1/3 w-[350px] h-[350px] rounded-full', style: { background: 'radial-gradient(circle, rgba(75,0,130,0.2) 0%, transparent 70%)', filter: 'blur(60px)' } }),
+            React.createElement('div', { className: 'absolute bottom-1/4 left-1/3 w-[450px] h-[450px] rounded-full', style: { background: 'radial-gradient(circle, rgba(255,105,180,0.25) 0%, transparent 70%)', filter: 'blur(60px)' } })
+          ),
+          React.createElement('div', { className: 'absolute inset-0' },
+            [...Array(400)].map((_, i) => React.createElement('div', { 
+              key: `s${i}`, 
+              className: 'absolute rounded-full bg-white',
+              style: { 
+                width: Math.random() * 1.5 + 'px', 
+                height: Math.random() * 1.5 + 'px',
+                top: Math.random() * 100 + '%', 
+                left: Math.random() * 100 + '%',
+                opacity: Math.random() * 0.4 + 0.1,
+                animation: `twinkle ${Math.random() * 5 + 3}s ease-in-out infinite ${Math.random() * 5}s`
+              }
+            })),
+            [...Array(100)].map((_, i) => {
+              const hue = Math.random() * 60 + 260;
+              const size = Math.random() * 2 + 1;
+              return React.createElement('div', { 
+                key: `m${i}`,
+                className: 'absolute rounded-full',
+                style: { 
+                  width: size + 'px', 
+                  height: size + 'px',
+                  top: Math.random() * 100 + '%', 
+                  left: Math.random() * 100 + '%',
+                  opacity: Math.random() * 0.6 + 0.3,
+                  background: `hsl(${hue}, 80%, 80%)`,
+                  boxShadow: `0 0 ${size * 2}px hsla(${hue}, 80%, 80%, 0.5)`,
+                  animation: `twinkle ${Math.random() * 4 + 2}s ease-in-out infinite ${Math.random() * 4}s`
+                }
+              });
+            })
+          ),
+          React.createElement('svg', { className: 'w-full h-full absolute inset-0' },
+            constellationLines.map(([start, end], i) => {
+              const startPos = starPositions[start];
+              const endPos = starPositions[end];
+              const lineActive = activatedStars.includes(start) && activatedStars.includes(end);
+              return React.createElement('line', {
+                key: i,
+                x1: `${startPos.x}%`,
+                y1: `${startPos.y}%`,
+                x2: `${endPos.x}%`,
+                y2: `${endPos.y}%`,
+                stroke: lineActive ? 'rgba(255, 182, 255, 0.7)' : 'rgba(150, 100, 180, 0.25)',
+                strokeWidth: lineActive ? '2' : '1',
+                className: 'transition-all duration-1000',
+                style: { filter: lineActive ? 'drop-shadow(0 0 12px rgba(255, 182, 255, 0.8))' : 'none' }
+              });
+            })
+          ),
+          starPositions.map((pos, index) => {
+            const isActive = activatedStars.includes(index);
+            return React.createElement('button', {
+              key: index,
+              onClick: () => handleStarClick(index),
+              className: 'absolute group transition-all duration-700 cursor-pointer z-20',
+              style: { left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }
+            },
+              isActive && React.createElement('div', { className: 'absolute inset-0 -m-8' },
+                React.createElement('div', { className: 'w-16 h-16 rounded-full bg-pink-300/20 blur-xl animate-pulse' })
+              ),
+              React.createElement('div', { className: `relative transition-all duration-700 ${isActive ? 'scale-100' : 'scale-75'}` },
+                React.createElement('div', { className: `w-3 h-3 rounded-full transition-all duration-700 ${isActive ? 'bg-pink-200 shadow-[0_0_25px_rgba(255,182,255,0.9)]' : 'bg-purple-400 group-hover:bg-pink-300'}` }),
+                isActive && React.createElement(React.Fragment, null,
+                  React.createElement('div', { className: 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-0.5 bg-gradient-to-r from-transparent via-pink-200 to-transparent' }),
+                  React.createElement('div', { className: 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-12 bg-gradient-to-b from-transparent via-pink-200 to-transparent' })
+                )
+              ),
+              React.createElement('div', { className: `absolute -bottom-8 left-1/2 -translate-x-1/2 text-sm tracking-widest transition-all duration-700 ${isActive ? 'text-pink-200 opacity-100' : 'text-purple-400 opacity-60'}` }, letters[index].letter)
+            );
+          })
+        ),
+
+        React.createElement('div', { className: 'absolute top-12 left-0 right-0 text-center z-10' },
+          React.createElement('h1', { className: 'text-5xl md:text-7xl font-light text-white mb-3 tracking-widest' }, 'JEWELL'),
+          React.createElement('div', { className: 'flex items-center justify-center gap-2 text-gray-400 text-sm' },
+            React.createElement('div', { className: 'w-12 h-px bg-gradient-to-r from-transparent to-gray-600' }),
+            React.createElement('span', null, `${activatedStars.length} of 6`),
+            React.createElement('div', { className: 'w-12 h-px bg-gradient-to-l from-transparent to-gray-600' })
+          )
+        ),
+
+        currentMessage && !showFinal && React.createElement('div', { className: 'absolute bottom-20 left-1/2 -translate-x-1/2 max-w-2xl w-11/12 fade-in z-30' },
+          React.createElement('div', { className: 'bg-black/80 backdrop-blur-md p-8 rounded border border-white/20 relative' },
+            React.createElement('button', { 
+              onClick: handleCloseMessage,
+              className: 'absolute top-4 right-4 text-gray-400 hover:text-white transition-colors text-2xl leading-none'
+            }, '×'),
+            React.createElement('p', { className: 'text-white text-base md:text-lg leading-relaxed text-left pr-8' }, currentMessage),
+            React.createElement('p', { className: 'text-gray-400 text-xs mt-4 text-center' }, 'Click × to continue')
+          )
+        ),
+
+        showFinal && React.createElement('div', { className: 'absolute inset-0 flex items-center justify-center z-30 fade-in' },
+          React.createElement('div', { className: 'max-w-3xl w-11/12 text-center' },
+            React.createElement('div', { className: 'mb-8' },
+              React.createElement('div', { className: 'text-6xl mb-4 animate-pulse' }, '✦')
+            ),
+            React.createElement('h2', { className: 'text-5xl md:text-7xl font-light text-white mb-8 tracking-widest' }, 'Happy Anniversary'),
+            React.createElement('div', { className: 'bg-black/40 backdrop-blur-md p-10 rounded border border-white/10' },
+              React.createElement('p', { className: 'text-white text-xl md:text-2xl leading-relaxed mb-6' }, 'You are my constellation. My guide through every dark night. The map I follow home.'),
+              React.createElement('p', { className: 'text-gray-400 text-lg' }, 'Forever yours, under the same stars.')
+            )
+          )
+        )
+      );
+    }
+
+    ReactDOM.render(React.createElement(ConstellationGame), document.getElementById('root'));
+  </script>
+</body>
+</html>
